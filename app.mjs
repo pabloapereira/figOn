@@ -30,7 +30,9 @@ async function authenticate() {
 
 authenticate()
   .then((apiToken) => {
-    return getPillars(apiToken).then((allPillars) => envioInfo(allPillars));
+    return getPillars(apiToken).then((allPillars) =>
+      envioInfo(allPillars, apiToken)
+    );
   })
   .then((result) => {
     console.log("Resultado do envio de informações:", result);
@@ -52,7 +54,9 @@ async function getPillars(apiToken) {
       );
       const data = await response.json();
       console.log("Dados da resposta:", data);
-      const pillars = data.pillars;
+
+      const pillars = data.data;
+      console.log("Pilar:", data.data);
       allPillars = allPillars.concat(pillars);
       if (!data.next_page) break;
       currentPage++;
@@ -66,9 +70,9 @@ async function getPillars(apiToken) {
   }
 }
 
-async function envioInfo(allPillars) {
+async function envioInfo(allPillars, apiToken) {
   try {
-    const concatenatedPillars = allPillars.reduce();
+    const concatenatedPillars = allPillars.join(", ");
 
     const concatenatedPillarsBase64 = btoa(concatenatedPillars);
 
@@ -76,12 +80,15 @@ async function envioInfo(allPillars) {
       "https://instance.fique.online/webhook/merge/88d8701e-a1d6-4fee-b15b-53e90dc1d126/envia_resposta/7b56940678e89802e02e1981a8657206d639f657d4c58efb8d8fb74814799d1c001ec121c6",
       {
         method: "POST",
-        body: {
-          answer: concatenatedPillarsBase64,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiToken}`,
         },
+        body: JSON.stringify({ answer: concatenatedPillarsBase64 }),
       }
     );
     const data = await response.json();
+    console.log(concatenatedPillarsBase64);
     console.log("Resposta do envio de informações:", data);
     return data;
   } catch (error) {
